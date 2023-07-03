@@ -63,6 +63,6 @@ class Model(nn.Module):
     def forward(self, x):
         return self.all_layers(x)
 
-    def summary(self, input_size=None):
-        return torchinfo.summary(self, input_size=input_size, depth=10,
+    def summary(self, input_size=None, depth=10):
+        return torchinfo.summary(self, input_size=input_size, depth=depth,
                                  col_names=["input_size", "output_size", "num_params", "params_percent"])
