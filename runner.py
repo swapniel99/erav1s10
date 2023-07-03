@@ -41,7 +41,7 @@ class Experiment(object):
     def execute(self, target=None):
         target_count = 0
         for epoch in range(1, self.epochs + 1):
-            print(f'Epoch {epoch}, LR {self.scheduler.get_last_lr()}')
+            print(f'Epoch: {epoch}, LR: {self.scheduler.get_last_lr()[0]}')
             self.train()
             test_loss, test_acc = self.test()
             if target is not None and test_acc >= target:
