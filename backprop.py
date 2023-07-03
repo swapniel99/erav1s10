@@ -67,8 +67,6 @@ class Train(object):
         self.train_accuracies.append(train_acc)
         self.train_losses.append(train_loss)
 
-        # print(f"Train: Average loss: {train_loss:0.4f}, Accuracy: {train_acc:0.2f}")
-
         return train_loss, train_acc
 
     def plot_stats(self):
@@ -93,6 +91,7 @@ class Test(object):
         self.model.eval()
 
         test_loss = 0
+        test_loss1 = 0
         correct = 0
         processed = 0
 
@@ -102,6 +101,8 @@ class Test(object):
                 pred = self.model(data)
 
                 test_loss += self.criterion(pred, target, reduction="sum").item()
+                test_loss1 += self.criterion(pred, target).item() * len(data)
+                assert(test_loss == test_loss1)
 
                 correct += get_correct_count(pred, target)
                 processed += len(data)
