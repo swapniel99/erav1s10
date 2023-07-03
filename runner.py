@@ -1,5 +1,4 @@
-from torch import optim
-from torch.nn import functional as F
+from torch import nn, optim
 from matplotlib import pyplot as plt
 from collections import defaultdict
 
@@ -8,13 +7,15 @@ from backprop import Train, Test
 
 
 class Experiment(object):
-    def __init__(self, model, dataset, lr=0.01, criterion=F.cross_entropy):
+    def __init__(self, model, dataset, lr=0.01, criterion=None):
         self.model = model.to(get_device())
         self.dataset = dataset
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.lr = lr
+        self.criterion = criterion or nn.CrossEntropyLoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=1, verbose=True, factor=0.1)
-        self.train = Train(self.model, dataset, criterion, self.optimizer)
-        self.test = Test(self.model, dataset, criterion)
+        self.train = Train(self.model, dataset, self.criterion, self.optimizer)
+        self.test = Test(self.model, dataset, self.criterion)
         self.incorrect_preds = None
 
     def execute(self, epochs=20, target=None):

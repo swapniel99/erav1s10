@@ -100,9 +100,7 @@ class Test(object):
                 data, target = data.to(self.device), target.to(self.device)
                 pred = self.model(data)
 
-                test_loss += self.criterion(pred, target, reduction="sum").item()
-                test_loss1 += self.criterion(pred, target).item() * len(data)
-                assert(test_loss == test_loss1)
+                test_loss += self.criterion(pred, target).item() * len(data)
 
                 correct += get_correct_count(pred, target)
                 processed += len(data)
