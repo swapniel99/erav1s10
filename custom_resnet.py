@@ -57,8 +57,9 @@ class Model(nn.Module):
             nn.MaxPool2d(4, 4),
             nn.Flatten(),
             nn.Linear(512, 10),
-            # nn.Softmax()   #  This is not required as crossentropy combines logsoftmax and nllloss.
+            # nn.Softmax()   #  Softmax is not required as crossentropy(x) = nllloss(log(softmax(x))
             # https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            # https://stackoverflow.com/questions/65408027/how-to-correctly-use-cross-entropy-loss-vs-softmax-for-classification
         )
 
     def forward(self, x):
