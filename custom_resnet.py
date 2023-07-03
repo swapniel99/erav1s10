@@ -57,7 +57,7 @@ class Model(nn.Module):
             nn.MaxPool2d(4, 4),
             nn.Flatten(),
             nn.Linear(512, 10),
-            nn.Softmax(-1)
+            # nn.Softmax()   #  This is not required as crossentropy combines logsoftmax and nllloss.
         )
 
     def forward(self, x):
