@@ -18,8 +18,7 @@ class ConvLayer(nn.Module):
         self.all_layers = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.all_layers(x)
-        return x
+        return self.all_layers(x)
 
 
 class CustomLayer(nn.Module):
@@ -41,7 +40,8 @@ class CustomLayer(nn.Module):
         if self.res_block is not None:
             x_ = x
             x = self.res_block(x)
-            x += x_
+            # += operator causes inplace errors in pytorch if done right after relu.
+            x = x + x_
         return x
 
 
@@ -61,8 +61,7 @@ class Model(nn.Module):
         )
 
     def forward(self, x):
-        x = self.all_layers(x)
-        return x
+        return self.all_layers(x)
 
     def summary(self, input_size=None):
         return torchinfo.summary(self, input_size=input_size, depth=10,
