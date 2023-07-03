@@ -18,12 +18,13 @@ def get_incorrect_preds(prediction, labels):
 
 
 class Train(object):
-    def __init__(self, model, dataset, criterion, optimizer, l1=0):
+    def __init__(self, model, dataset, criterion, optimizer, scheduler, l1=0):
         self.model = model
         self.device = get_device()
         self.criterion = criterion
         self.dataset = dataset
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.l1 = l1
 
         self.train_losses = list()
@@ -59,8 +60,10 @@ class Train(object):
             processed += len(data)
 
             pbar.set_description(
-                desc=f"Train: Average Loss: {train_loss / processed:0.4f}, Accuracy: {100 * correct / processed:0.2f}"
+                desc=f"Train: Average Loss: {train_loss / processed:0.4f}, Accuracy: {100 * correct / processed:0.2f} "
+                     f"LR: {self.scheduler.get_last_lr()[0]}"
             )
+            self.scheduler.step()
 
         train_acc = 100 * correct / processed
         train_loss /= processed

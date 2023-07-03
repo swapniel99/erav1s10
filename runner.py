@@ -27,7 +27,7 @@ class Experiment(object):
             final_div_factor=100,
             anneal_strategy='linear'
         )
-        self.train = Train(self.model, dataset, self.criterion, self.optimizer)
+        self.train = Train(self.model, dataset, self.criterion, self.optimizer, self.scheduler)
         self.test = Test(self.model, dataset, self.criterion)
         self.incorrect_preds = None
 
@@ -41,7 +41,7 @@ class Experiment(object):
     def execute(self, target=None):
         target_count = 0
         for epoch in range(1, self.epochs + 1):
-            print(f'Epoch: {epoch}, LR: {self.scheduler.get_last_lr()[0]}')
+            print(f'Epoch: {epoch}')
             self.train()
             test_loss, test_acc = self.test()
             if target is not None and test_acc >= target:
@@ -49,7 +49,6 @@ class Experiment(object):
                 if target_count >= 3:
                     print("Target Validation accuracy achieved thrice. Stopping Training.")
                     break
-            self.scheduler.step()
 
     def show_incorrect(self, denorm=True):
         self.incorrect_preds = defaultdict(list)
