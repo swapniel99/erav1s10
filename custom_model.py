@@ -55,9 +55,9 @@ class Model(nn.Module):
             CustomLayer(128, 256, pool=True, residue=0),
             CustomLayer(256, 512, pool=True, residue=2),
             nn.MaxPool2d(4, 4),
-            nn.Conv2d(512, 10, 1, bias=True),
             nn.Flatten(),
-            nn.LogSoftmax(-1)
+            nn.Linear(512, 10),
+            nn.Softmax(-1)
         )
 
     def forward(self, x):

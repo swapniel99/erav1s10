@@ -8,10 +8,10 @@ from backprop import Train, Test
 
 
 class Experiment(object):
-    def __init__(self, model, dataset, lr=0.01, criterion=F.nll_loss):
+    def __init__(self, model, dataset, lr=0.01, criterion=F.cross_entropy):
         self.model = model.to(get_device())
         self.dataset = dataset
-        self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=0.9)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=1, verbose=True, factor=0.1)
         self.train = Train(self.model, dataset, criterion, self.optimizer)
         self.test = Test(self.model, dataset, criterion)
