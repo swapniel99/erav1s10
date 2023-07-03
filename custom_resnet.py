@@ -58,6 +58,7 @@ class Model(nn.Module):
             nn.Flatten(),
             nn.Linear(512, 10),
             # nn.Softmax()   #  This is not required as crossentropy combines logsoftmax and nllloss.
+            # https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         )
 
     def forward(self, x):
