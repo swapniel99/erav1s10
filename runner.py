@@ -12,8 +12,7 @@ class Experiment(object):
         self.device = get_device()
         self.model = model.to(self.device)
         self.dataset = dataset
-        self.train_criterion = criterion or nn.CrossEntropyLoss(label_smoothing=0.2)
-        self.test_criterion = criterion or nn.CrossEntropyLoss()
+        self.criterion = criterion or nn.CrossEntropyLoss()
         self.epochs = epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-7, weight_decay=1e-2)
         self.best_lr = self.find_lr()
@@ -28,12 +27,12 @@ class Experiment(object):
             final_div_factor=100,
             anneal_strategy='linear'
         )
-        self.train = Train(self.model, dataset, self.train_criterion, self.optimizer, self.scheduler)
-        self.test = Test(self.model, dataset, self.test_criterion)
+        self.train = Train(self.model, dataset, self.criterion, self.optimizer, self.scheduler)
+        self.test = Test(self.model, dataset, self.criterion)
         self.incorrect_preds = None
 
     def find_lr(self):
-        lr_finder = LRFinder(self.model, self.optimizer, self.train_criterion, device=self.device)
+        lr_finder = LRFinder(self.model, self.optimizer, self.criterion, device=self.device)
         lr_finder.range_test(self.dataset.train_loader, end_lr=0.1, num_iter=100, step_mode='exp')
         _, best_lr = lr_finder.plot()  # to inspect the loss-learning rate graph
         lr_finder.reset()  # to reset the model and optimizer to their initial state
