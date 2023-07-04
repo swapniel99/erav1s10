@@ -3,7 +3,7 @@ import torchinfo
 
 
 class ConvLayer(nn.Module):
-    def __init__(self, input_c, output_c, bias=False, stride=1, padding=1, pool=False):
+    def __init__(self, input_c, output_c, bias=False, stride=1, padding=1, pool=False, dropout=0):
         super(ConvLayer, self).__init__()
 
         layers = list()
@@ -14,6 +14,8 @@ class ConvLayer(nn.Module):
             layers.append(nn.MaxPool2d(2, 2))
         layers.append(nn.BatchNorm2d(output_c))
         layers.append(nn.ReLU())
+        if dropout > 0:
+            layers.append(nn.Dropout(dropout))
 
         self.all_layers = nn.Sequential(*layers)
 
@@ -22,16 +24,16 @@ class ConvLayer(nn.Module):
 
 
 class CustomLayer(nn.Module):
-    def __init__(self, input_c, output_c, pool=True, residue=2):
+    def __init__(self, input_c, output_c, pool=True, residue=2, dropout=0):
         super(CustomLayer, self).__init__()
 
-        self.pool_block = ConvLayer(input_c, output_c, pool=pool)
+        self.pool_block = ConvLayer(input_c, output_c, pool=pool, dropout=dropout)
         self.res_block = None
         if residue > 0:
             layers = list()
             for i in range(0, residue):
                 layers.append(
-                    ConvLayer(output_c, output_c, pool=False)
+                    ConvLayer(output_c, output_c, pool=False, dropout=dropout)
                 )
             self.res_block = nn.Sequential(*layers)
 
@@ -46,14 +48,14 @@ class CustomLayer(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self):
+    def __init__(self, dropout=0):
         super(Model, self).__init__()
 
         self.all_layers = nn.Sequential(
-            CustomLayer(3, 64, pool=False, residue=0),
-            CustomLayer(64, 128, pool=True, residue=2),
-            CustomLayer(128, 256, pool=True, residue=0),
-            CustomLayer(256, 512, pool=True, residue=2),
+            CustomLayer(3, 64, pool=False, residue=0, dropout=dropout),
+            CustomLayer(64, 128, pool=True, residue=2, dropout=dropout),
+            CustomLayer(128, 256, pool=True, residue=0, dropout=dropout),
+            CustomLayer(256, 512, pool=True, residue=2, dropout=dropout),
             nn.MaxPool2d(4, 4),
             nn.Flatten(),
             nn.Linear(512, 10),

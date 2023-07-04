@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 import torch
 from torchvision import datasets
 import albumentations as A
@@ -27,6 +26,7 @@ class CIFAR10(MyDataSet):
     def get_train_transforms(self):
         if self.alb_transforms is None:
             self.alb_transforms = [
+                A.ToGray(p=0.2),
                 A.PadIfNeeded(40, 40, p=1),
                 A.RandomCrop(32, 32, p=1),
                 A.HorizontalFlip(p=0.5),
