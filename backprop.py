@@ -94,7 +94,6 @@ class Test(object):
         self.model.eval()
 
         test_loss = 0
-        test_loss1 = 0
         correct = 0
         processed = 0
 
