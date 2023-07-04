@@ -18,13 +18,12 @@ import albumentations as A
 
 alb_transforms = [
     A.Normalize(mean, std),
+    A.ToGray(p=0.2),
+    A.PadIfNeeded(40, 40, p=1),
+    A.RandomCrop(32, 32, p=1),
     A.HorizontalFlip(p=0.5),
-    A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=15),
-    # Padding value doesnt matter here.
-    A.PadIfNeeded(64, 64, border_mode=cv2.BORDER_CONSTANT, value=0, p=1),
     # Since normalisation was the first step, mean is already 0, so cutout fill_value = 0
-    A.CoarseDropout(max_holes=1, max_height=16, max_width=16, fill_value=0, p=0.6),
-    A.CenterCrop(32, 32, p=1),
+    A.CoarseDropout(max_holes=1, max_height=8, max_width=8, fill_value=0, p=1),
     A.pytorch.ToTensorV2()
 ]
 ```
@@ -32,59 +31,86 @@ alb_transforms = [
 ![CIFAR10 Examples](assets/cifar_aug.png)
 
 ### 2. model.py Module
-The model has following unique properties:
-1. It does NOT use any Maxpool or Strided convolutions for increasing RF.
-2. It uses ONLY dilation for increasing RF.
-3. It has 4 (convolution + transition) blocks.
-4. ALL Convolution blocks make use of Depthwise Separable Convolutions.
-5. All Convolution blocks use Skip Connections internally.
+Since the model is very large and was observed to overfit, we added dropout.
 
-The Depthwise Separable Convolution is implemented using a small building block which is as follows:
-
-```python
-self.convlayer = n.Sequential(
-    nn.Conv2d(input_c, output_c, 3, bias=bias, padding=padding, groups=input_c, dilation=dilation,
-              padding_mode='replicate'),
-    nn.BatchNorm2d(output_c),
-    nn.ReLU(),
-    nn.Conv2d(output_c, output_c, 1, bias=bias),
-)
 ```
-The skip connection is implemented in forward function as below.
-
-```python
-def forward(self, x):
-    x_ = x
-    x = self.convlayer(x)
-    x = self.normlayer(x)
-    if self.skip:
-        x += x_
-    x = self.actlayer(x)
-    if self.droplayer is not None:
-        x = self.droplayer(x)
-    return x
+=============================================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #                   Param %
+=============================================================================================================================
+Model                                              [512, 10]                 --                             --
+├─Sequential: 1-1                                  [512, 10]                 --                             --
+│    └─CustomLayer: 2-1                            [512, 64, 32, 32]         --                             --
+│    │    └─ConvLayer: 3-1                         [512, 64, 32, 32]         --                             --
+│    │    │    └─Sequential: 4-1                   [512, 64, 32, 32]         --                             --
+│    │    │    │    └─Conv2d: 5-1                  [512, 64, 32, 32]         1,728                       0.03%
+│    │    │    │    └─BatchNorm2d: 5-2             [512, 64, 32, 32]         128                         0.00%
+│    │    │    │    └─ReLU: 5-3                    [512, 64, 32, 32]         --                             --
+│    │    │    │    └─Dropout: 5-4                 [512, 64, 32, 32]         --                             --
+│    └─CustomLayer: 2-2                            [512, 128, 16, 16]        --                             --
+│    │    └─ConvLayer: 3-2                         [512, 128, 16, 16]        --                             --
+│    │    │    └─Sequential: 4-2                   [512, 128, 16, 16]        --                             --
+│    │    │    │    └─Conv2d: 5-5                  [512, 128, 32, 32]        73,728                      1.12%
+│    │    │    │    └─MaxPool2d: 5-6               [512, 128, 16, 16]        --                             --
+│    │    │    │    └─BatchNorm2d: 5-7             [512, 128, 16, 16]        256                         0.00%
+│    │    │    │    └─ReLU: 5-8                    [512, 128, 16, 16]        --                             --
+│    │    │    │    └─Dropout: 5-9                 [512, 128, 16, 16]        --                             --
+│    │    └─Sequential: 3-3                        [512, 128, 16, 16]        --                             --
+│    │    │    └─ConvLayer: 4-3                    [512, 128, 16, 16]        --                             --
+│    │    │    │    └─Sequential: 5-10             [512, 128, 16, 16]        --                             --
+│    │    │    │    │    └─Conv2d: 6-1             [512, 128, 16, 16]        147,456                     2.24%
+│    │    │    │    │    └─BatchNorm2d: 6-2        [512, 128, 16, 16]        256                         0.00%
+│    │    │    │    │    └─ReLU: 6-3               [512, 128, 16, 16]        --                             --
+│    │    │    │    │    └─Dropout: 6-4            [512, 128, 16, 16]        --                             --
+│    │    │    └─ConvLayer: 4-4                    [512, 128, 16, 16]        --                             --
+│    │    │    │    └─Sequential: 5-11             [512, 128, 16, 16]        --                             --
+│    │    │    │    │    └─Conv2d: 6-5             [512, 128, 16, 16]        147,456                     2.24%
+│    │    │    │    │    └─BatchNorm2d: 6-6        [512, 128, 16, 16]        256                         0.00%
+│    │    │    │    │    └─ReLU: 6-7               [512, 128, 16, 16]        --                             --
+│    │    │    │    │    └─Dropout: 6-8            [512, 128, 16, 16]        --                             --
+│    └─CustomLayer: 2-3                            [512, 256, 8, 8]          --                             --
+│    │    └─ConvLayer: 3-4                         [512, 256, 8, 8]          --                             --
+│    │    │    └─Sequential: 4-5                   [512, 256, 8, 8]          --                             --
+│    │    │    │    └─Conv2d: 5-12                 [512, 256, 16, 16]        294,912                     4.49%
+│    │    │    │    └─MaxPool2d: 5-13              [512, 256, 8, 8]          --                             --
+│    │    │    │    └─BatchNorm2d: 5-14            [512, 256, 8, 8]          512                         0.01%
+│    │    │    │    └─ReLU: 5-15                   [512, 256, 8, 8]          --                             --
+│    │    │    │    └─Dropout: 5-16                [512, 256, 8, 8]          --                             --
+│    └─CustomLayer: 2-4                            [512, 512, 4, 4]          --                             --
+│    │    └─ConvLayer: 3-5                         [512, 512, 4, 4]          --                             --
+│    │    │    └─Sequential: 4-6                   [512, 512, 4, 4]          --                             --
+│    │    │    │    └─Conv2d: 5-17                 [512, 512, 8, 8]          1,179,648                  17.95%
+│    │    │    │    └─MaxPool2d: 5-18              [512, 512, 4, 4]          --                             --
+│    │    │    │    └─BatchNorm2d: 5-19            [512, 512, 4, 4]          1,024                       0.02%
+│    │    │    │    └─ReLU: 5-20                   [512, 512, 4, 4]          --                             --
+│    │    │    │    └─Dropout: 5-21                [512, 512, 4, 4]          --                             --
+│    │    └─Sequential: 3-6                        [512, 512, 4, 4]          --                             --
+│    │    │    └─ConvLayer: 4-7                    [512, 512, 4, 4]          --                             --
+│    │    │    │    └─Sequential: 5-22             [512, 512, 4, 4]          --                             --
+│    │    │    │    │    └─Conv2d: 6-9             [512, 512, 4, 4]          2,359,296                  35.89%
+│    │    │    │    │    └─BatchNorm2d: 6-10       [512, 512, 4, 4]          1,024                       0.02%
+│    │    │    │    │    └─ReLU: 6-11              [512, 512, 4, 4]          --                             --
+│    │    │    │    │    └─Dropout: 6-12           [512, 512, 4, 4]          --                             --
+│    │    │    └─ConvLayer: 4-8                    [512, 512, 4, 4]          --                             --
+│    │    │    │    └─Sequential: 5-23             [512, 512, 4, 4]          --                             --
+│    │    │    │    │    └─Conv2d: 6-13            [512, 512, 4, 4]          2,359,296                  35.89%
+│    │    │    │    │    └─BatchNorm2d: 6-14       [512, 512, 4, 4]          1,024                       0.02%
+│    │    │    │    │    └─ReLU: 6-15              [512, 512, 4, 4]          --                             --
+│    │    │    │    │    └─Dropout: 6-16           [512, 512, 4, 4]          --                             --
+│    └─MaxPool2d: 2-5                              [512, 512, 1, 1]          --                             --
+│    └─Flatten: 2-6                                [512, 512]                --                             --
+│    └─Linear: 2-7                                 [512, 10]                 5,130                       0.08%
+=============================================================================================================================
+Total params: 6,573,130
+Trainable params: 6,573,130
+Non-trainable params: 0
+Total mult-adds (Units.GIGABYTES): 194.18
+=============================================================================================================================
+Input size (MB): 6.29
+Forward/backward pass size (MB): 2382.41
+Params size (MB): 26.29
+Estimated Total Size (MB): 2414.99
+=============================================================================================================================
 ```
-And finally model is put together in class Model.
-
-#### Receptive field Calculations:
-
-| Layer | Input Size | Input RF | Jump In | Padding | Kernel Size | Dilation | Eff. Kernel Size | Stride | Output Size | Output RF | Jump Out |
-| ----- | ---------- | -------- | ------- | ------- | ----------- | -------- | ---------------- | ------ | ----------- | --------- | -------- |
-| 0     | 32         | 1        | 1       | 0       | 1           | 1        | 1                | 1      | 32          | 1         | 1        |
-| 1     | 32         | 1        | 1       | 1       | 3           | 1        | 3                | 1      | 32          | 3         | 1        |
-| 2     | 32         | 3        | 1       | 1       | 3           | 1        | 3                | 1      | 32          | 5         | 1        |
-| 3     | 32         | 5        | 1       | 0       | 3           | 1        | 3                | 1      | 30          | 7         | 1        |
-| 4     | 30         | 7        | 1       | 1       | 3           | 1        | 3                | 1      | 30          | 9         | 1        |
-| 5     | 30         | 9        | 1       | 1       | 3           | 1        | 3                | 1      | 30          | 11        | 1        |
-| 6     | 30         | 11       | 1       | 0       | 3           | 2        | 5                | 1      | 26          | 15        | 1        |
-| 7     | 26         | 15       | 1       | 1       | 3           | 1        | 3                | 1      | 26          | 17        | 1        |
-| 8     | 26         | 17       | 1       | 1       | 3           | 1        | 3                | 1      | 26          | 19        | 1        |
-| 9     | 26         | 19       | 1       | 0       | 3           | 4        | 9                | 1      | 18          | 27        | 1        |
-| 10    | 18         | 27       | 1       | 1       | 3           | 1        | 3                | 1      | 18          | 29        | 1        |
-| 11    | 18         | 29       | 1       | 1       | 3           | 1        | 3                | 1      | 18          | 31        | 1        |
-| 12    | 18         | 31       | 1       | 0       | 3           | 8        | 17               | 1      | 2           | 47        | 1        |
-| 13    | 2          | 47       | 1       | 0       | 2           | 1        | 2                | 2      | 1           | 48        | 2        |
-| 14    | 1          | 48       | 2       | 0       | 1           | 1        | 1                | 1      | 1           | 48        | 2        |
 
 ### 3. backprop.py Module
 This module contains 3 classes:
@@ -94,6 +120,10 @@ This module contains 3 classes:
 
 Experiment class performs train-test iterations for a given number of epochs or a given validation target. It can also find and plot misclassified examples using a simple function.
 
+It also finds the max LR using LRFinder for OneCycleLR.
+
+![LRFinder](assets/lrfinder.png)
+
 Train and Test classes perform training and testing respectively on given model and dataset. They also accumulate statistics which can be plotted using a simple member functions.
 
 ### 4. utils.py Modele
@@ -101,9 +131,9 @@ This module contains miscellaneous functions like detecting device and setting r
 
 ## The Results
 
-Best Train Accuracy: 85.85%
+Best Train Accuracy: 92.86%
 
-Best Test Accuracy: 86.68%
+Best Test Accuracy: 91.3%
 
 ![Training](assets/train.png)
 ![Testing](assets/test.png)
