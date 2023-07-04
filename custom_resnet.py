@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torchinfo
+from gbn import GhostBatchNorm
 
 
 class ConvLayer(nn.Module):
@@ -12,7 +13,7 @@ class ConvLayer(nn.Module):
         )
         if pool:
             layers.append(nn.MaxPool2d(2, 2))
-        layers.append(nn.BatchNorm2d(output_c))
+        layers.append(GhostBatchNorm(output_c, 16))
         layers.append(nn.ReLU())
 
         self.all_layers = nn.Sequential(*layers)
