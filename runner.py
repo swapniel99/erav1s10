@@ -12,7 +12,7 @@ class Experiment(object):
         self.device = get_device()
         self.model = model.to(self.device)
         self.dataset = dataset
-        self.criterion = criterion or nn.CrossEntropyLoss()
+        self.criterion = criterion or nn.CrossEntropyLoss(label_smoothing=0.2)
         self.epochs = epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-7, weight_decay=1e-2)
         self.best_lr = self.find_lr()
