@@ -30,11 +30,8 @@ class CIFAR10(MyDataSet):
                 A.PadIfNeeded(40, 40, p=1),
                 A.RandomCrop(32, 32, p=1),
                 A.HorizontalFlip(p=0.5),
-                # Padding value doesnt matter here.
-                A.PadIfNeeded(48, 48, border_mode=cv2.BORDER_CONSTANT, value=0, p=1),
                 # Since normalisation was the first step, mean is already 0, so cutout fill_value = 0
-                A.CoarseDropout(max_holes=1, max_height=8, max_width=8, fill_value=0, p=1),
-                A.CenterCrop(32, 32, p=1)
+                A.CoarseDropout(max_holes=1, max_height=8, max_width=8, fill_value=0, p=1)
             ]
         return super(CIFAR10, self).get_train_transforms()
 
